@@ -1,4 +1,24 @@
 # priest_and_demon
+## 游戏概述
+
+1. **目标**：
+   - 玩家控制牧师和恶魔，目标是安全地将所有牧师（和恶魔）从左岸移动到右岸，同时确保在任何一侧的牧师数量不小于恶魔数量，以避免失败。
+
+2. **主要角色**：
+   - **牧师**：需要被安全地运输到右岸的角色。
+   - **恶魔**：同样需要被运输，但如果牧师在任何一侧的数量少于恶魔，游戏将失败。
+   - **船只**：用于将角色从一岸移动到另一岸。
+
+3. **游戏机制**：
+   - 玩家通过操作船只移动牧师和恶魔。每次移动后，游戏会检查当前状态以判断是否达成胜利或失败条件。
+   - 使用回调机制（如 `ISSActionCallback` 和 `SSActionEvent`）来处理动作完成后的状态更新和信息传递，确保游戏逻辑的连贯性。
+
+4. **界面设计**：
+   - 提供了基本的用户界面，显示游戏状态信息（如时间、游戏消息）和操作按钮（如重启按钮）。
+
+5. **逻辑判断**：
+   - 游戏会在每个动作后检查是否满足胜利条件（如所有牧师安全到达右岸）或失败条件（如某一侧的牧师数量少于恶魔）。
+
 ## uml图
 ![uml图](uml.jpg)
 ## 实验主要目的：裁判类的制作
@@ -180,7 +200,129 @@ public class JudgeController : MonoBehaviour
 ### 5. 可扩展性
 通过使用 `Model` 类型，可以方便地扩展游戏的功能或增加新的数据属性。例如，在添加新的游戏角色或道具时，只需修改相关的 `Model` 类，而不需要更改其他部分的代码。
 
+## View
+`UserGUI` 脚本用于在 Unity 游戏中展示用户界面，包括游戏消息、计时器和重启按钮。以下是该脚本的主要功能和结构说明：
+
+### 概述
+`UserGUI` 脚本负责显示游戏的状态信息和用户交互选项，通过 Unity 的 GUI 系统实现。
+
+### 主要部分
+
+1. **变量声明**
+   - `userAction`：调用游戏控制器中的操作接口，用于处理游戏逻辑。
+   - `gameMessage`：存储当前游戏消息，例如胜利或失败的信息。
+   - `time`：表示剩余时间，初始设置为 60 秒。
+
+2. **Start 方法**
+   - 初始化 `gameMessage` 为一个空字符串，`time` 设置为 60 秒。
+   - 获取当前场景的控制器并将其转为 `IUserAction` 类型，以便后续调用。
+
+3. **OnGUI 方法**
+   - 定义了两种字体样式：小字体（颜色为白色，大小为 30）和大字体（颜色为白色，大小为 50）。
+   - 使用 `GUI.Label` 绘制游戏标题、游戏消息和剩余时间。
+   - 创建“重启”按钮，用户点击后调用 `userAction.Restart()` 方法以重启游戏。
+
+```
+﻿using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class UserGUI : MonoBehaviour
+{
+    private IUserAction userAction;
+    public string gameMessage;
+    public int time;
+    void Start()
+    {
+        gameMessage = "";
+        time = 60;
+        userAction = SSDirector.GetInstance().CurrentSenceController as IUserAction;
+    }
+
+    void OnGUI()
+    {
+        //小字体初始化
+        GUIStyle style = new GUIStyle();
+        style.normal.textColor = Color.white;
+        style.fontSize = 30;
+
+        //大字体初始化
+        GUIStyle bigStyle = new GUIStyle();
+        bigStyle.normal.textColor = Color.white;
+        bigStyle.fontSize = 50;
+
+        GUI.Label(new Rect(200, 30, 50, 200), "Priests and Devils", bigStyle);
+
+        GUI.Label(new Rect(320, 100, 50, 200), gameMessage, style);
+
+        GUI.Label(new Rect(0, 0, 100, 50), "Time: " + time, style);
+
+        if(GUI.Button(new Rect(340, 160, 100, 50), "Restart"))
+        {
+            userAction.Restart();
+        }
+    }
+}
+```
+
+## Action
+
+1.
+`ISSActionCallback` 的作用是作为一个通信接口，用于在不同函数之间传递动作的结果。当某个动作完成后，需要向另一个函数传递这个信息时，可以通过 `SSActionEvent` 进行回调。
+
+例如，假设船只移动是一个动作，当船从一侧移动到另一侧时，表示这个动作已结束。如果需要通知管理者该信息，可以调用管理者的 `SSActionEvent` 方法（前提是管理者类实现了 `ISSActionCallback` 接口）来处理这个事件。这样可以有效地实现模块之间的通信和状态管理。
+```
+public interface ISSActionCallback
+{
+    void SSActionEvent(SSAction source,
+        SSActionEventType events = SSActionEventType.Competed,
+        int intParam = 0,
+        string strParam = null,
+        Object objectParam = null);
+}
+```
+
+2.
+`SSAction` 是动作类的基类，它继承自 `ScriptableObject`，允许不绑定实体对象进行操作。该类设计用于表示游戏中的各种动作。
+
+### 主要属性和功能
+
+1. **gameObject**：表示动作作用的实体对象，动作将在这个对象上执行。
+   
+2. **transform**：指向 `gameObject` 的变换组件，便于访问和修改对象的位置、旋转和缩放。
+
+3. **callback**：这是一个回调接口，用于在动作类需要向其他类（通常是调用该动作的类）传递信息时使用。具体来说，它通过 `ISSActionCallback` 接口来实现通信，确保能够有效地反馈动作的执行结果或状态变化。
+
+通过这种设计，`SSAction` 类可以灵活地处理动作逻辑，同时保持与游戏对象的分离，提高了代码的可重用性和维护性。
+```
+public class SSAction : ScriptableObject
+{
+    public bool enable = true;
+    public bool destroy = false;
+
+    public GameObject gameObject { get; set; }
+    public Transform transform { get; set; }
+    public ISSActionCallback callback { get; set; }
+
+    protected SSAction()
+    {
+
+    }
+
+    // Start is called before the first frame update
+    public virtual void Start()
+    {
+        throw new System.NotImplementedException();
+    }
+
+    // Update is called once per frame
+    public virtual void Update()
+    {
+        throw new System.NotImplementedException();
+    }
+}
+```
+
+
 ### 总结
-`Model` 类型在游戏开发中起着至关重要的作用，它不仅帮助管理和组织数据，还支持游戏逻辑、状态管理和数据传输，从而提高了代码的清晰度和可维护性。
-
-
+这个游戏结合了策略、逻辑思维和实时决策。玩家需要合理规划每一步的移动，以确保角色安全并达成游戏目标。游戏的设计使用了分离的类结构（如 `Model`、`View` 和 `Controller`），增强了代码的可维护性和扩展性，使得游戏逻辑清晰且易于调整。
