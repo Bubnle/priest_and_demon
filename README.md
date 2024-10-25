@@ -1,10 +1,13 @@
 # priest_and_demon
+## uml图
 ![uml图](uml.jpg)
+## 实验主要目的：裁判类的制作
 
-## **各部分代码解释**  
-这里只解释新增或者出现改动的代码，其他代码请参考上一版本。  
-### **Actions**  
-大部分代码与老师课件是一致的，改动的地方我会指出。
+## prefab制作
+
+## 天空盒制作
+
+## 代码讲述
 1. **ISSActionCallback.cs**  
     ```java  
     public interface ISSActionCallback
