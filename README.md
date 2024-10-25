@@ -527,7 +527,3 @@
     }
 
     ```
-    + FirstController相比上一版本的变化主要是需要对动作分离进行适配，将上个版本调用MoveController的代码改为调用CCActionManager的代码。  
-    + 增加了JudgeCallback()函数来处理裁判类的反馈信息。  
-    之所以没有使用ISSActionCallback接口是因为ISSActionCallback接口属于Actions当中的组成部分，若主控制器实现这个接口，反而会导致结构混乱。  
-    + 具体可以参照上一版本和这一版本的FirstController代码，大部分逻辑都没变。  
